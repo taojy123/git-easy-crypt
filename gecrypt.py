@@ -7,6 +7,7 @@ import hashlib
 import base64
 
 
+VERSION = '1.0.1'
 PWD = os.getcwd()
 PYVERSION = sys.version_info[:2]
 
@@ -21,11 +22,12 @@ else:
 
 HELP = """
 Usage:   
-  gecrypt setkey mysecretkey             Set a secret key for encrypt/decrypt in current repo.
-  gecrypt showkey                        Show secret key.
-  gecrypt encrypt ./path_to_file         Encrypt a file.
-  gecrypt decrypt ./path_to_file.sec     Decrypt a file.
-  help                                   Show help for commands.
+  gecrypt setkey mysecretkey             Set a secret key for encrypt/decrypt in current repo
+  gecrypt showkey                        Show secret key
+  gecrypt encrypt ./path_to_file         Encrypt a file
+  gecrypt decrypt ./path_to_file.sec     Decrypt a file
+  version                                Show version
+  help                                   Show help for commands
 """
 
 
@@ -152,6 +154,7 @@ def add_gitignore(name):
 
 
 def get_key(verbose=False, raise_exception=True):
+    check_git()
     open('.git-easy-crypt-key', 'a')
     key = open('.git-easy-crypt-key', 'r').read().strip() or None
 
@@ -186,8 +189,6 @@ def main(args=None):
         if not args or 'help' in args:
             raise NeedHelp()
 
-        check_git()
-
         action = args[0]
 
         if action == 'setkey':
@@ -209,7 +210,7 @@ def main(args=None):
             print('`%s` has saved in .git-easy-crypt-key' % key)
 
         elif action == 'showkey':
-            key = get_key(True)
+            key = get_key(verbose=True)
             print('The secret key is: %s' % key)
 
         elif action == 'encrypt':
@@ -255,6 +256,10 @@ def main(args=None):
             open(path, 'w').write(content)
             print('Decrypt success!\n'
                   'The source code has been saved in %s.' % path)
+
+        elif action == 'version':
+            print('Python version is: %s.%s' % PYVERSION)
+            print('git-easy-crypt version is: %s' % VERSION)
 
         else:
             raise NeedHelp()
