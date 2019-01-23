@@ -231,8 +231,9 @@ def main(args=None):
             open(path_sec, 'w').write(content_sec)
             add_gitignore(path)
             print('Encrypt success!\n'
-                  'The secret code has been saved in `%s`\n'
-                  'and `%s` is ignored by git.' % (path_sec, path))
+                  'The secret code has been saved in `%s`, and `%s` is ignored by git.\n'
+                  'You must keep the secret key `%s` in mind '
+                  'for decrypt the file in the future!!!' % (path_sec, path, key))
 
         elif action == 'decrypt':
             key = get_key()
