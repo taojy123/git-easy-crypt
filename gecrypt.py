@@ -7,7 +7,7 @@ import hashlib
 import base64
 
 
-VERSION = '1.0.1'
+VERSION = '1.0.2'
 PWD = os.getcwd()
 PYVERSION = sys.version_info[:2]
 
