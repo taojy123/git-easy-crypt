@@ -26,7 +26,6 @@ Usage:
   gecrypt decrypt file.sec               Decrypt a file (decrypt file.sec to file)
   gecrypt decrypt file.sec anther_file   Decrypt file.sec to anther_file
   gecrypt decryptall                     Decrypt all encrypted files in current repo
-  gecrypt registerhooks                  Register the git hooks
   gecrypt version                        Show version
   gecrypt help                           Show help for commands
 """
@@ -305,26 +304,6 @@ def main(args=None):
                 open(path, 'w').write(content)
                 add_gitignore(path)
                 print('`%s` has been decrypted to `%s`.' % (path_sec, path))
-
-        # ========= registerall ===========
-        elif action == 'registerall':
-            check_git()
-
-            hook = '.git/hooks/pre-commit'
-            cmd = 'gecrypt encryptall'
-            f = open(hook, 'a+')
-            if cmd not in f.read():
-                f.write('#!/bin/sh\n\n%s\n' % cmd)
-            f.close()
-            os.chmod(hook, 493)  # 755
-
-            hook = '.git/hooks/post-update'
-            cmd = 'gecrypt decryptall'
-            f = open(hook, 'a+')
-            if cmd not in f.read():
-                f.write('#!/bin/sh\n\n%s\n' % cmd)
-            f.close()
-            os.chmod(hook, 493)  # 755
 
         # ========= version ===========
         elif action == 'version':
