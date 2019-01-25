@@ -3,7 +3,7 @@
 import sys
 import os
 import time
-import hashlib
+import random
 import base64
 
 
@@ -12,22 +12,22 @@ PWD = os.getcwd()
 PYVERSION = sys.version_info[:2]
 
 
-py2 = py3 = False
 if PYVERSION[0] == 2:
-    py2 = True
     input = raw_input
-else:
-    py3 = True
 
 
 HELP = """
 Usage:   
   gecrypt setkey mysecretkey             Set a secret key for encrypt/decrypt in current repo
+  gecrypt setkey mysecretkey -y          Set a secret key without input yes
   gecrypt showkey                        Show secret key
-  gecrypt encrypt ./path_to_file         Encrypt a file
-  gecrypt decrypt ./path_to_file.sec     Decrypt a file
-  version                                Show version
-  help                                   Show help for commands
+  gecrypt encrypt file                   Encrypt a file (decrypt file to file.sec)
+  gecrypt encryptall                     Encrypt all decrypted files in current repo
+  gecrypt decrypt file.sec               Decrypt a file (decrypt file.sec to file)
+  gecrypt decrypt file.sec anther_file   Decrypt file.sec to anther_file
+  gecrypt decryptall                     Decrypt all encrypted files in current repo
+  gecrypt version                        Show version
+  gecrypt help                           Show help for commands
 """
 
 
@@ -50,12 +50,16 @@ class NeedHelp(Exception):
         return self.info
 
 
-def rc4(string, op='encode', secret='12345'):
+def easy_b64_crypt(string, op='encode', key='1234'):
+    """
+    A simple encryption solution that is not strong
+    """
 
-    def md5(string):
-        if py3 and isinstance(string, str):
-            string = string.encode()
-        return hashlib.md5(string)
+    py2 = py3 = False
+    if sys.version_info[0] == 2:
+        py2 = True
+    else:
+        py3 = True
 
     def b64encode(string):
         if py3 and isinstance(string, str):
@@ -75,59 +79,41 @@ def rc4(string, op='encode', secret='12345'):
 
     assert op in ['encode', 'decode'], 'op must be encode or decode not %s' % op
 
+    if not string:
+        return ''
+
     if py2 and isinstance(string, unicode):
         string = string.encode('utf8')
 
-    ckey_lenth = 4
-    secret = secret and secret or ''
-    key = md5(secret).hexdigest()
-    keya = md5(key[0:16]).hexdigest()
-    keyb = md5(key[16:32]).hexdigest()
+    key2 = b64encode(b64encode(key)).strip('=')
+    key3 = b64encode(b64encode(b64encode(key))).strip('=')
 
-    keyc = ckey_lenth and (op == 'decode' and string[0:ckey_lenth] or md5(str(time.time())).hexdigest()[
-                                                                      32 - ckey_lenth:32]) or ''
-
-    cryptkey = keya + md5(keya + keyc).hexdigest()
-    key_lenth = len(cryptkey)
-
-    string = op == 'decode' and b64decode(string[4:]) or '0000000000' + md5(string + keyb).hexdigest()[
-                                                                        0:16] + string
-    string_lenth = len(string)
-
-    result = ''
-    box = list(range(256))
-    randkey = []
-
-    for i in range(255):
-        randkey.append(ord(cryptkey[i % key_lenth]))
-
-    for i in range(255):
-        j = 0
-        j = (j + box[i] + randkey[i]) % 256
-        tmp = box[i]
-        box[i] = box[j]
-        box[j] = tmp
-
-    for i in range(string_lenth):
-        a = j = 0
-        a = (a + 1) % 256
-        j = (j + box[a]) % 256
-        tmp = box[a]
-        box[a] = box[j]
-        box[j] = tmp
-
-        result += chr(ord(string[i]) ^ (box[(box[a] + box[j]) % 256]))
+    assert key2 and key3, key
 
     if op == 'encode':
+        string = b64encode(string)
 
-        return keyc + b64encode(result)
+        if key2 in string:
+            j = string.find(key2) + len(key2) - 1
+        else:
+            j = len(string)
+        i = random.randint(0, j)
+        string = string[:i] + key2 + string[i:]
+
+        if key3 in string:
+            j = string.find(key3) + len(key3) - 1
+        else:
+            j = len(string)
+        i = random.randint(0, j)
+        string = string[:i] + key3 + string[i:]
+
     else:
 
-        if (result[0:10] == '0000000000' or int(result[0:10]) - int(time.time()) > 0) and result[10:26] == md5(
-                result[26:] + keyb).hexdigest()[0:16]:
-            return result[26:]
-        else:
-            return None
+        string = string.replace(key3, '', 1)
+        string = string.replace(key2, '', 1)
+        string = b64decode(string)
+
+    return string
 
 
 def check_git():
@@ -142,6 +128,9 @@ def add_gitignore(name):
     open(gitignore_path, 'a')
     content = open(gitignore_path, 'r').read().replace('\r\n', '\n').replace('\r', '\n')
 
+    if name.startswith('./'):
+        name = name[2:]
+        
     if '\n' + name + '\n' in '\n' + content + '\n':
         return
 
@@ -180,17 +169,31 @@ def get_key(verbose=False, raise_exception=True):
     return
 
 
+def find_all_secret_files():
+    rs = []
+    for root, dirs, files in os.walk('.'):
+        if '.git' in root:
+            # skip the .git dir
+            continue
+        for file in files:
+            if file.endswith('.sec'):
+                path_sec = os.path.join(root, file)
+                rs.append(path_sec)
+    return rs
+
+
 def main(args=None):
     if not args:
         args = sys.argv[1:]
 
     # print(args)
     try:
-        if not args or 'help' in args:
+        if not args or 'help' in args or '--help' in args or '-h' in args:
             raise NeedHelp()
 
         action = args[0]
 
+        # ========= setkey ===========
         if action == 'setkey':
             if len(args) < 2:
                 raise NeedHelp('Please type the secret key')
@@ -199,31 +202,43 @@ def main(args=None):
                 raise NeedHelp('Secret key can not in null')
 
             k = get_key(raise_exception=False)
-            if k:
+
+            if len(args) > 2 and args[2] == '-y':
+                force_yes = True
+            else:
+                force_yes = False
+
+            if k and not force_yes:
                 print('The secret key is `%s` now, are you sure to rewrite it? [type `Y` to confirm]' % k)
                 t = input().lower()
-                if t != 'y':
+                if t not in ['y', 'yes']:
                     print('Nothing changed')
                     return
 
             open('.git-easy-crypt-key', 'w').write(key)
             print('`%s` has saved in .git-easy-crypt-key' % key)
 
+        # ========= showkey ===========
         elif action == 'showkey':
             key = get_key(verbose=True)
             print('The secret key is: %s' % key)
 
+        # ========= encrypt ===========
         elif action == 'encrypt':
             key = get_key()
             if len(args) < 2:
                 raise NeedHelp('Please type the file path')
             path = args[1]
+
+            if path.endswith('.sec'):
+                raise GecryptError('Can not encrypt a encrypted file')
+
             if not os.path.isfile(path):
                 raise GecryptError('File path `%s` is not found' % path)
 
-            content = open(path).read()
             try:
-                content_sec = rc4(content, 'encode', key)
+                content = open(path).read()
+                content_sec = easy_b64_crypt(content, 'encode', key)
             except Exception as e:
                 raise GecryptError('Encrypt failed: %s' % e)
 
@@ -235,6 +250,21 @@ def main(args=None):
                   'You must keep the secret key `%s` in mind '
                   'for decrypt the file in the future!!!' % (path_sec, path, key))
 
+        # ========= encryptall ===========
+        elif action == 'encryptall':
+            key = get_key()
+            for path_sec in find_all_secret_files():
+                path = path_sec[:-4]
+                try:
+                    content = open(path).read()
+                    content_sec = easy_b64_crypt(content, 'encode', key)
+                except:
+                    continue
+                open(path_sec, 'w').write(content_sec)
+                add_gitignore(path)
+                print('`%s` has been encrypted to `%s`.' % (path, path_sec))
+
+        # ========= decrypt ===========
         elif action == 'decrypt':
             key = get_key()
             if len(args) < 2:
@@ -243,21 +273,39 @@ def main(args=None):
             if not os.path.isfile(path_sec):
                 raise GecryptError('File path `%s` is not found' % path_sec)
 
-            content_sec = open(path_sec).read()
             try:
-                content = rc4(content_sec, 'decode', key)
+                content_sec = open(path_sec).read()
+                content = easy_b64_crypt(content_sec, 'decode', key)
             except Exception as e:
                 raise GecryptError('Decrypt failed: %s' % e)
 
-            if path_sec.endswith('.sec'):
+            if len(args) > 2:
+                path = args[2]
+            elif path_sec.endswith('.sec'):
                 path = path_sec[:-4]
             else:
                 path = path_sec
 
             open(path, 'w').write(content)
+            add_gitignore(path)
             print('Decrypt success!\n'
                   'The source code has been saved in %s.' % path)
 
+        # ========= decryptall ===========
+        elif action == 'decryptall':
+            key = get_key()
+            for path_sec in find_all_secret_files():
+                try:
+                    content_sec = open(path_sec).read()
+                    content = easy_b64_crypt(content_sec, 'decode', key)
+                except:
+                    continue
+                path = path_sec[:-4]
+                open(path, 'w').write(content)
+                add_gitignore(path)
+                print('`%s` has been decrypted to `%s`.' % (path_sec, path))
+
+        # ========= version ===========
         elif action == 'version':
             print('Python version is: %s.%s' % PYVERSION)
             print('git-easy-crypt version is: %s' % VERSION)

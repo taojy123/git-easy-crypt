@@ -103,3 +103,6 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+
+# managed by git-easy-crypt]
+.git-easy-crypt-key
