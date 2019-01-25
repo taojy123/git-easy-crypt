@@ -7,7 +7,7 @@ import random
 import base64
 
 
-VERSION = '1.0.3'
+VERSION = '1.0.4'
 PWD = os.getcwd()
 PYVERSION = sys.version_info[:2]
 

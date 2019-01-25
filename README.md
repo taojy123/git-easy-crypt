@@ -25,12 +25,16 @@ $ sudo chmod a+x /usr/local/bin/gecrypt
 ## Usage
 
 ``` 
-gecrypt setkey mysecretkey             Set a secret key for encrypt/decrypt in current repo
-gecrypt showkey                        Show secret key
-gecrypt encrypt ./path_to_file         Encrypt a file
-gecrypt decrypt ./path_to_file.sec     Decrypt a file
-version                                Show version
-help                                   Show help for commands
+  gecrypt setkey mysecretkey             Set a secret key for encrypt/decrypt in current repo
+  gecrypt setkey mysecretkey -y          Set a secret key without input yes
+  gecrypt showkey                        Show secret key
+  gecrypt encrypt file                   Encrypt a file (decrypt file to file.sec)
+  gecrypt encryptall                     Encrypt all decrypted files in current repo
+  gecrypt decrypt file.sec               Decrypt a file (decrypt file.sec to file)
+  gecrypt decrypt file.sec anther_file   Decrypt file.sec to anther_file
+  gecrypt decryptall                     Decrypt all encrypted files in current repo
+  gecrypt version                        Show version
+  gecrypt help                           Show help for commands
 ```
 
 
