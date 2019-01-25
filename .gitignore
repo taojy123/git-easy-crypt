@@ -104,5 +104,6 @@ venv.bak/
 .mypy_cache/
 
 
-# managed by git-easy-crypt]
+# managed by git-easy-crypt
+a.txt]
 .git-easy-crypt-key
