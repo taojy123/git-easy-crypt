@@ -44,7 +44,7 @@ gecrypt help                           Show help for commands
 ## Best Practice
 
 
-### Alice, encrypt the secret files and push:
+### As Alice, encrypt the secret files and push:
 
 ```
 $ git clone https://github.com/taojy123/test
@@ -82,7 +82,7 @@ $
 ```
 
 
-### Bob, pull and decrypt the secret files:
+### As Bob, pull and decrypt the secret files:
 
 ```
 $ git clone https://github.com/taojy123/test
